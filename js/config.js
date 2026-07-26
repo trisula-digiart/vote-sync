@@ -1,6 +1,7 @@
 /**
  * VOTE-SYNC CYBER CORE - CONFIG & STATE MANAGEMENT
  * File: js/config.js
+ * Description: Menyimpan konfigurasi global, state aplikasi, dan data demo mock.
  */
 
 const CONFIG = {
@@ -15,8 +16,12 @@ const state = {
         role: 'SUPER_ADMIN',
         fullName: 'Cyber Admin'
     },
-    gasApiUrl: localStorage.getItem(CONFIG.STORAGE_KEY_GAS_URL) || '', 'https://script.google.com/macros/s/AKfycbxBxlyyICvIrVoX0cbgXwhsgomn_atsGZFZnMmHr4WjNNaR8fWIkomzzU4G1lC-cw/exec',
+    // URL Web App GAS Endpoint Backend
+    gasApiUrl: localStorage.getItem(CONFIG.STORAGE_KEY_GAS_URL) || 'https://script.google.com/macros/s/AKfycbxBxlyyICvIrVoX0cbgXwhsgomn_atsGZFZnMmHr4WjNNaR8fWIkomzzU4G1lC-cw/exec',
     token: localStorage.getItem(CONFIG.STORAGE_KEY_TOKEN) || '',
+    connectionStatus: 'DISCONNECTED', // Status: 'CONNECTED' | 'DISCONNECTED' | 'DEMO'
+    latencyMs: 0,                     // Measured Latency in milliseconds
+    wasOffline: false,                // State flag for auto-resync
     voters: [],
     duplicates: [],
     radar: [],
@@ -27,7 +32,7 @@ const state = {
         doubleClaims: 0,
         kubu1Count: 0,
         kubu2Count: 0,
-        syncHealth: 'OPTIMAL (100%)'
+        syncHealth: 'DEMO MOCK ACTIVE'
     }
 };
 
