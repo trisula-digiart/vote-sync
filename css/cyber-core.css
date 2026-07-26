@@ -1,1 +1,95 @@
+/* STREAMING_CHUNK:Defining core CSS variables and global theme settings... */
+:root {
+--neon-blue: #00f0ff;
+--neon-cyan: #08f7fe;
+--neon-red: #ff003c;
+--neon-yellow: #ffb703;
+--neon-green: #00ff66;
+--bg-dark: #050811;
+}
 
+body {
+background-color: var(--bg-dark);
+color: #e2e8f0;
+font-family: 'Inter', sans-serif;
+overflow-x: hidden;
+}
+
+/* STREAMING_CHUNK:Applying CRT scanline and glassmorphism styling... */
+.scanline {
+position: fixed;
+top: 0; left: 0; width: 100%; height: 100%;
+background: linear-gradient(
+rgba(18, 16, 16, 0) 50%,
+rgba(0, 0, 0, 0.25) 50%
+), linear-gradient(
+90deg,
+rgba(255, 0, 0, 0.03),
+rgba(0, 255, 0, 0.01),
+rgba(0, 0, 255, 0.03)
+);
+background-size: 100% 3px, 6px 100%;
+pointer-events: none;
+z-index: 9999;
+opacity: 0.6;
+}
+
+.cyber-glass {
+background: rgba(15, 23, 42, 0.7);
+backdrop-filter: blur(12px);
+border: 1px solid rgba(0, 240, 255, 0.15);
+box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+}
+
+.cyber-glass-red {
+background: rgba(255, 0, 60, 0.08);
+backdrop-filter: blur(12px);
+border: 1px solid rgba(255, 0, 60, 0.4);
+box-shadow: 0 0 15px rgba(255, 0, 60, 0.2);
+}
+
+/* STREAMING_CHUNK:Configuring glowing effects and custom scrollbars... */
+.glow-neon-blue {
+box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+}
+
+.glow-neon-red {
+box-shadow: 0 0 18px rgba(255, 0, 60, 0.6);
+}
+
+.text-glow-blue {
+text-shadow: 0 0 8px rgba(0, 240, 255, 0.8);
+}
+
+.text-glow-red {
+text-shadow: 0 0 8px rgba(255, 0, 60, 0.9);
+}
+
+::-webkit-scrollbar {
+width: 6px;
+height: 6px;
+}
+::-webkit-scrollbar-track {
+background: #050811;
+}
+::-webkit-scrollbar-thumb {
+background: #00f0ff;
+border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+background: #08f7fe;
+}
+
+@keyframes pulse-fast {
+0%, 100% { opacity: 1; transform: scale(1); }
+50% { opacity: 0.4; transform: scale(0.95); }
+}
+.animate-pulse-fast {
+animation: pulse-fast 1.5s infinite;
+}
+
+.nav-btn.active {
+background: linear-gradient(90deg, rgba(0, 240, 255, 0.2) 0%, rgba(0, 240, 255, 0) 100%);
+border-left: 4px solid #00f0ff;
+color: #00f0ff;
+}
