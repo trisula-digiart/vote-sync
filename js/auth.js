@@ -75,7 +75,14 @@ function handleLogout() {
     localStorage.removeItem(CONFIG.STORAGE_KEY_TOKEN);
     state.token = '';
     state.currentUser = { username: 'guest', role: 'ANALYST', fullName: 'Guest User' };
-    showToast('Sesi berhasil diakhiri.', 'info');
+    showToast('Sesi berhasil diakhiri. Beralih ke Role Guest/Analyst.', 'info');
     applyRbacRules();
-    switchTab('dashboard');
+    if (typeof switchTab === 'function') {
+        switchTab('dashboard');
+    }
 }
+
+// BINDING EKSPLISIT KE GLOBAL WINDOW AGAR EVENT ONCLICK BISA MEMANGGILNYA
+window.initAuth = initAuth;
+window.applyRbacRules = applyRbacRules;
+window.handleLogout = handleLogout;
