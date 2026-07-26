@@ -121,9 +121,10 @@
             <!-- TOP BAR -->
             <header class="h-16 bg-[#090d16]/80 border-b border-cyber-border/30 flex items-center justify-between px-6 backdrop-blur-md sticky top-0 z-20">
                 <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full bg-cyber-green animate-pulse-fast"></span>
-                        <span class="font-mono text-xs text-cyber-neon tracking-widest uppercase">CORE STATUS: ONLINE</span>
+                    <div class="flex items-center gap-2" id="core-status-container">
+                        <span id="core-status-ping" class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                        <span id="core-status-text" class="font-mono text-xs text-slate-400 tracking-widest uppercase">CHECKING...</span>
+                        <span id="core-status-latency" class="font-mono text-[10px] text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">0 ms</span>
                     </div>
                     <span class="text-slate-700">|</span>
                     <div class="hidden sm:flex items-center gap-2 text-xs font-mono text-slate-400" id="backend-status-indicator">
