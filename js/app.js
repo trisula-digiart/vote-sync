@@ -7,6 +7,7 @@
 let chartClaimsInstance = null;
 let chartKubuInstance = null;
 let heartbeatTimer = null;
+let consecutiveFailures = 0; // Tracking kegagalan ping berurutan untuk toleransi jaringan
 
 // Inisialisasi saat DOM siap
 document.addEventListener('DOMContentLoaded', () => {
@@ -33,6 +34,7 @@ async function initApp() {
 
 /**
  * Loop Pemantau Koneksi & Auto-Resync Realtime (Heartbeat)
+ * Menggunakan interval 15 detik agar tidak membebani server GAS.
  */
 function startHeartbeatLoop() {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
@@ -40,17 +42,19 @@ function startHeartbeatLoop() {
     // Cek langsung saat aplikasi dimuat
     runHealthCheckProcess();
 
-    // Jalankan pemeriksaan periodik setiap 10 detik
-    heartbeatTimer = setInterval(runHealthCheckProcess, 10000);
+    // Jalankan pemeriksaan periodik setiap 15 detik
+    heartbeatTimer = setInterval(runHealthCheckProcess, 15000);
 }
 
 /**
  * Proses Eksekusi Cek Koneksi & Auto-Sync
+ * Dilengkapi sistem toleransi 3x kegagalan berturut-turut agar koneksi stabil.
  */
 async function runHealthCheckProcess() {
     const isAlive = await API.pingHealthCheck();
 
     if (isAlive) {
+        consecutiveFailures = 0; // Reset hitungan gagal jika ping berhasil
         if (state.connectionStatus !== 'CONNECTED') {
             state.connectionStatus = 'CONNECTED';
             showToast(`🟢 Terhubung ke Backend GAS (${state.latencyMs}ms)`, 'success');
@@ -63,11 +67,20 @@ async function runHealthCheckProcess() {
             }
         }
     } else {
-        if (state.connectionStatus === 'CONNECTED') {
-            state.wasOffline = true;
-            showToast('⚠️ Koneksi Backend GAS Terputus! Beralih ke Mode Standby.', 'error');
+        consecutiveFailures++;
+
+        // Jika hanya gagal 1-2 kali (karena lag/cold-start), set status RETRYING tanpa putus koneksi
+        if (consecutiveFailures < 3 && state.connectionStatus === 'CONNECTED') {
+            state.connectionStatus = 'RETRYING';
+        } 
+        // Jika gagal 3x berturut-turut, baru beralih ke status DISCONNECTED
+        else if (consecutiveFailures >= 3) {
+            if (state.connectionStatus === 'CONNECTED' || state.connectionStatus === 'RETRYING') {
+                state.wasOffline = true;
+                showToast('⚠️ Koneksi Backend GAS Terputus! Beralih ke Mode Standby.', 'error');
+            }
+            state.connectionStatus = state.gasApiUrl ? 'DISCONNECTED' : 'DEMO';
         }
-        state.connectionStatus = state.gasApiUrl ? 'DISCONNECTED' : 'DEMO';
     }
 
     updateHealthUI();
@@ -89,6 +102,12 @@ function updateHealthUI() {
         textLabel.textContent = 'CORE STATUS: ONLINE';
         latencyLabel.textContent = `${state.latencyMs} ms`;
         latencyLabel.className = 'font-mono text-[10px] text-cyber-green bg-cyber-green/10 px-1.5 py-0.5 rounded border border-cyber-green/30';
+    } else if (state.connectionStatus === 'RETRYING') {
+        pingDot.className = 'w-2.5 h-2.5 rounded-full bg-cyber-yellow animate-pulse-fast';
+        textLabel.className = 'font-mono text-xs text-cyber-yellow tracking-widest uppercase';
+        textLabel.textContent = 'CORE STATUS: RETRYING...';
+        latencyLabel.textContent = 'LAG';
+        latencyLabel.className = 'font-mono text-[10px] text-cyber-yellow bg-cyber-yellow/10 px-1.5 py-0.5 rounded border border-cyber-yellow/30';
     } else if (state.connectionStatus === 'DISCONNECTED') {
         pingDot.className = 'w-2.5 h-2.5 rounded-full bg-cyber-red animate-pulse-fast';
         textLabel.className = 'font-mono text-xs text-cyber-red tracking-widest uppercase';
