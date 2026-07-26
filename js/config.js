@@ -15,7 +15,7 @@ const state = {
         role: 'SUPER_ADMIN',
         fullName: 'Cyber Admin'
     },
-    gasApiUrl: localStorage.getItem(CONFIG.STORAGE_KEY_GAS_URL) || '',
+    gasApiUrl: localStorage.getItem(CONFIG.STORAGE_KEY_GAS_URL) || '', 'https://script.google.com/macros/s/AKfycbxBxlyyICvIrVoX0cbgXwhsgomn_atsGZFZnMmHr4WjNNaR8fWIkomzzU4G1lC-cw/exec',
     token: localStorage.getItem(CONFIG.STORAGE_KEY_TOKEN) || '',
     voters: [],
     duplicates: [],
