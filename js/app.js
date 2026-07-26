@@ -1,7 +1,7 @@
 /**
  * VOTE-SYNC CYBER CORE - SPA APPLICATION CONTROLLER
  * File: js/app.js
- * Description: Controller utama UI, penanganan event, Chart.js, modal, dan export.
+ * Description: Controller utama UI, penanganan event, Chart.js, modal, remote sync, dan export.
  */
 
 let chartClaimsInstance = null;
@@ -378,6 +378,67 @@ function updateApiStatusIndicator() {
     if (label) {
         label.textContent = state.gasApiUrl ? 'LIVE GAS BACKEND' : 'DEMO MOCK';
         label.className = state.gasApiUrl ? 'text-cyber-green font-bold' : 'text-cyber-yellow';
+    }
+}
+
+/**
+ * Eksekusi Sinkronisasi Remote Manual (Konektor API Kubu)
+ */
+async function handleTriggerRemoteSync() {
+    const targetKubu = document.getElementById('sync-target-kubu')?.value;
+    const targetUrl = document.getElementById('sync-target-url')?.value?.trim();
+    const apiKey = document.getElementById('sync-api-key')?.value?.trim();
+
+    if (!targetUrl) {
+        showToast('URL Endpoint Target Wajib Diisi!', 'error');
+        return;
+    }
+
+    showToast(`Menghubungi Endpoint Remote ${targetKubu}...`, 'info');
+
+    try {
+        const res = await API.request('triggerManualSync', {
+            targetKubu: targetKubu,
+            targetUrl: targetUrl,
+            apiKey: apiKey
+        }, 'POST');
+
+        showToast(res.message || 'Sinkronisasi Remote Berhasil!', 'success');
+        await loadDashboardData();
+    } catch (e) {
+        showToast(`Gagal Sinkronisasi Remote: ${e.message}`, 'error');
+    }
+}
+
+/**
+ * Simpan Data Pemilih Baru
+ */
+async function handleSaveVoter(event) {
+    if (event) event.preventDefault();
+    const kubu = document.getElementById('voter-input-kubu')?.value;
+    const nik = document.getElementById('voter-input-nik')?.value?.trim();
+    const nama = document.getElementById('voter-input-nama')?.value?.trim();
+    const rt = document.getElementById('voter-input-rt')?.value?.trim();
+    const rw = document.getElementById('voter-input-rw')?.value?.trim();
+
+    if (!nik || !nama) {
+        showToast('NIK dan Nama Wajib Diisi!', 'error');
+        return;
+    }
+
+    showToast('Mengirim data warga baru...', 'info');
+
+    try {
+        const res = await API.request('webhookIngest', {
+            targetKubu: kubu,
+            voterData: { nik, nama, rt, rw }
+        }, 'POST');
+
+        showToast(res.message || 'Data warga berhasil disimpan!', 'success');
+        closeAddVoterModal();
+        await loadDashboardData();
+    } catch (e) {
+        showToast(`Gagal menyimpan data: ${e.message}`, 'error');
     }
 }
 
