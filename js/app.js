@@ -108,17 +108,14 @@ function updateHealthUI() {
  * Pindah Tab Single Page Application
  */
 function switchTab(tabId) {
-    // Update tombol navigasi
     document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
     const targetNav = document.getElementById(`nav-${tabId}`);
     if (targetNav) targetNav.classList.add('active');
 
-    // Tampilkan panel tab target
     document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.add('hidden'));
     const targetPane = document.getElementById(`tab-${tabId}`);
     if (targetPane) targetPane.classList.remove('hidden');
 
-    // Trigger render spesifik tab
     if (tabId === 'dashboard') loadDashboardData();
     if (tabId === 'warga') loadVotersData();
     if (tabId === 'double') loadDuplicatesData();
@@ -131,13 +128,19 @@ function switchTab(tabId) {
 async function loadDashboardData() {
     try {
         const res = await API.request('getDashboardStats');
-        const stats = res.data;
+        const stats = res.data || {};
 
-        document.getElementById('stat-total-records').textContent = stats.totalRecords || 0;
-        document.getElementById('stat-unique-voters').textContent = stats.uniqueVoters || 0;
-        document.getElementById('stat-double-claims').textContent = stats.doubleClaims || 0;
-        document.getElementById('stat-sync-health').textContent = stats.syncHealth || '100%';
-        document.getElementById('badge-double-count').textContent = stats.doubleClaims || 0;
+        const totalEl = document.getElementById('stat-total-records');
+        const uniqueEl = document.getElementById('stat-unique-voters');
+        const doubleEl = document.getElementById('stat-double-claims');
+        const healthEl = document.getElementById('stat-sync-health');
+        const badgeEl = document.getElementById('badge-double-count');
+
+        if (totalEl) totalEl.textContent = stats.totalRecords || 0;
+        if (uniqueEl) uniqueEl.textContent = stats.uniqueVoters || 0;
+        if (doubleEl) doubleEl.textContent = stats.doubleClaims || 0;
+        if (healthEl) healthEl.textContent = stats.syncHealth || '100%';
+        if (badgeEl) badgeEl.textContent = stats.doubleClaims || 0;
 
         renderCharts(stats);
     } catch (e) {
@@ -154,11 +157,9 @@ function renderCharts(stats) {
 
     if (!ctxDoughnut || !ctxBar) return;
 
-    // Destroy chart lama jika ada
     if (chartClaimsInstance) chartClaimsInstance.destroy();
     if (chartKubuInstance) chartKubuInstance.destroy();
 
-    // Chart Doughnut Distribusi Klaim
     chartClaimsInstance = new Chart(ctxDoughnut, {
         type: 'doughnut',
         data: {
@@ -177,7 +178,6 @@ function renderCharts(stats) {
         }
     });
 
-    // Chart Bar Perbandingan Kubu
     chartKubuInstance = new Chart(ctxBar, {
         type: 'bar',
         data: {
@@ -385,7 +385,7 @@ function updateApiStatusIndicator() {
  * Eksekusi Sinkronisasi Remote Manual (Konektor API Kubu)
  */
 async function handleTriggerRemoteSync() {
-    const targetKubu = document.getElementById('sync-target-kubu')?.value;
+    const targetKubu = document.getElementById('sync-target-kubu')?.value || 'KUBU_1';
     const targetUrl = document.getElementById('sync-target-url')?.value?.trim();
     const apiKey = document.getElementById('sync-api-key')?.value?.trim();
 
@@ -451,15 +451,23 @@ function openResolveModal(nik) {
     const voter = state.voters.find(v => v.NIK === nik) || state.duplicates.find(v => v.NIK === nik);
     if (!voter) return;
 
-    document.getElementById('res-target-nik').textContent = voter.NIK;
-    document.getElementById('res-confidence').textContent = `${voter.CONFIDENCE_SCORE || 100}%`;
-    document.getElementById('res-k1-nama').textContent = voter.NAMA;
-    document.getElementById('res-k1-rtrw').textContent = `RT ${voter.RT} / RW ${voter.RW}`;
-    document.getElementById('res-k2-nama').textContent = voter.NAMA;
-    document.getElementById('res-k2-rtrw').textContent = `RT ${voter.RT} / RW ${voter.RW}`;
+    const nikEl = document.getElementById('res-target-nik');
+    const confEl = document.getElementById('res-confidence');
+    const k1NamaEl = document.getElementById('res-k1-nama');
+    const k1RtRwEl = document.getElementById('res-k1-rtrw');
+    const k2NamaEl = document.getElementById('res-k2-nama');
+    const k2RtRwEl = document.getElementById('res-k2-rtrw');
+
+    if (nikEl) nikEl.textContent = voter.NIK;
+    if (confEl) confEl.textContent = `${voter.CONFIDENCE_SCORE || 100}%`;
+    if (k1NamaEl) k1NamaEl.textContent = voter.NAMA;
+    if (k1RtRwEl) k1RtRwEl.textContent = `RT ${voter.RT} / RW ${voter.RW}`;
+    if (k2NamaEl) k2NamaEl.textContent = voter.NAMA;
+    if (k2RtRwEl) k2RtRwEl.textContent = `RT ${voter.RT} / RW ${voter.RW}`;
 
     document.getElementById('modal-resolve-duplicate')?.classList.remove('hidden');
 }
+
 function closeResolveModal() { document.getElementById('modal-resolve-duplicate')?.classList.add('hidden'); }
 
 function submitResolution(choice) {
@@ -521,3 +529,18 @@ function showToast(message, type = 'info') {
         setTimeout(() => toast.remove(), 300);
     }, 4000);
 }
+
+// BINDING KE GLOBAL WINDOW
+window.handleTriggerRemoteSync = handleTriggerRemoteSync;
+window.handleSaveVoter = handleSaveVoter;
+window.switchTab = switchTab;
+window.triggerDeduplication = triggerDeduplication;
+window.saveGasUrlConfig = saveGasUrlConfig;
+window.openAddVoterModal = openAddVoterModal;
+window.closeAddVoterModal = closeAddVoterModal;
+window.openResolveModal = openResolveModal;
+window.closeResolveModal = closeResolveModal;
+window.submitResolution = submitResolution;
+window.exportDuplicatesToCSV = exportDuplicatesToCSV;
+window.printDuplicateReport = printDuplicateReport;
+window.filterVotersTable = filterVotersTable;
