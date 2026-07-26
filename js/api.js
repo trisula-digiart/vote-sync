@@ -58,6 +58,7 @@ const API = {
 
     /**
      * Heartbeat Health Check untuk memantau konektivitas & latensi GAS Backend
+     * Dilengkapi toleransi timeout 15 detik untuk mengatasi cold-start server GAS
      */
     async pingHealthCheck() {
         const gasUrl = state.gasApiUrl || localStorage.getItem(CONFIG.STORAGE_KEY_GAS_URL);
@@ -70,7 +71,8 @@ const API = {
         const startTime = performance.now();
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 detik timeout
+            // Timeout diperpanjang dari 6s ke 15s untuk mengakomodasi fluktuasi latensi GAS
+            const timeoutId = setTimeout(() => controller.abort(), 15000);
 
             const response = await fetch(`${gasUrl}?action=ping`, {
                 method: 'GET',
