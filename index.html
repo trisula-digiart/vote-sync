@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOTE-SYNC CYBER CORE // DEDUPLICATION DASHBOARD</title>
+    
+    <!-- External CDNs -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Share+Tech+Mono&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            bg: '#050811',
+                            card: 'rgba(15, 23, 42, 0.75)',
+                            border: 'rgba(0, 240, 255, 0.2)',
+                            neon: '#00f0ff',
+                            cyan: '#08f7fe',
+                            red: '#ff003c',
+                            yellow: '#ffb703',
+                            green: '#00ff66',
+                            muted: '#64748b'
+                        }
+                    },
+                    fontFamily: {
+                        orbitron: ['Orbitron', 'sans-serif'],
+                        mono: ['Share Tech Mono', 'monospace'],
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        :root {
+            --neon-blue: #00f0ff;
+            --neon-red: #ff003c;
+            --bg-dark: #050811;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #e2e8f0;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Scanline Overlay FX */
+        .scanline {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.03),
+                rgba(0, 255, 0, 0.01),
+                rgba(0, 0, 255, 0.03)
+            );
+            background-size: 100% 3px, 6px 100%;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.6;
+        }
+
+        /* Glassmorphism Containers */
+        .cyber-glass {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 240, 255, 0.15);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        }
+
+        .cyber-glass-red {
+            background: rgba(255, 0, 60, 0.08);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 0, 60, 0.4);
+            box-shadow: 0 0 15px rgba(255, 0, 60, 0.2);
+        }
+
+        /* Glowing Effects */
+        .glow-neon-blue {
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.4);
+        }
+
+        .glow-neon-red {
+            box-shadow: 0 0 18px rgba(255, 0, 60, 0.6);
+        }
+
+        .text-glow-blue {
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.8);
+        }
+
+        .text-glow-red {
+            text-shadow: 0 0 8px rgba(255, 0, 60, 0.9);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #050811;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00f0ff;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #08f7fe;
+        }
+
+        /* Pulsing Badges */
+        @keyframes pulse-fast {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.95); }
+        }
+        .animate-pulse-fast {
+            animation: pulse-fast 1.5s infinite;
+        }
+
+        /* Active Sidebar Tab Highlight */
+        .nav-btn.active {
+            background: linear-gradient(90deg, rgba(0, 240, 255, 0.2) 0%, rgba(0, 240, 255, 0) 100%);
+            border-left: 4px solid #00f0ff;
+            color: #00f0ff;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans">
+    <div class="scanline"></div>
+    <div class="fixed inset-0 bg-[radial-gradient(#00f0ff_1px,transparent_1px)] [background-size:32px_32px] opacity-[0.03] pointer-events-none"></div>
+
+    <div id="app" class="flex-1 flex flex-col md:flex-row min-h-screen relative z-10">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside id="sidebar" class="w-full md:w-64 bg-[#090d16]/90 border-r border-cyber-border/40 flex flex-col justify-between p-4 backdrop-blur-md">
+            <div>
+                <!-- System Logo -->
+                <div class="flex items-center gap-3 px-2 py-4 border-b border-cyber-border/30">
+                    <div class="w-10 h-10 rounded bg-cyber-neon/10 border border-cyber-neon flex items-center justify-center glow-neon-blue">
+                        <i data-lucide="shield-alert" class="w-6 h-6 text-cyber-neon"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-orbitron font-black text-sm tracking-widest text-white leading-none">
+                            VOTE-SYNC
+                        </h1>
+                        <p class="font-mono text-[10px] text-cyber-neon tracking-wider">CYBER CORE v12.0</p>
+                    </div>
+                </div>
+
+                <!-- Navigation Links -->
+                <nav class="mt-6 flex flex-col gap-1" id="nav-container">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn active flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-cyber-neon/10">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span>Cyber Dashboard</span>
+                    </button>
+                    <button onclick="switchTab('warga')" id="nav-warga" class="nav-btn flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-cyber-neon/10">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Konsolidasi Warga</span>
+                    </button>
+                    <button onclick="switchTab('double')" id="nav-double" class="nav-btn flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-cyber-neon/10 relative">
+                        <i data-lucide="alert-triangle" class="w-4 h-4 text-cyber-red"></i>
+                        <span>Deteksi Data Double</span>
+                        <span id="badge-double-count" class="ml-auto bg-cyber-red text-white text-[10px] font-mono px-2 py-0.5 rounded-full font-bold glow-neon-red">0</span>
+                    </button>
+                    <button onclick="switchTab('radar')" id="nav-radar" class="nav-btn flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-cyber-neon/10">
+                        <i data-lucide="radar" class="w-4 h-4"></i>
+                        <span>Radar Wilayah</span>
+                    </button>
+                    <!-- Super Admin Only Tabs -->
+                    <button onclick="switchTab('konektor')" id="nav-konektor" class="nav-btn super-admin-only flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-cyber-neon/10">
+                        <i data-lucide="webhook" class="w-4 h-4"></i>
+                        <span>Konektor API Kubu</span>
+                    </button>
+                    <button onclick="switchTab('settings')" id="nav-settings" class="nav-btn super-admin-only flex items-center gap-3 px-4 py-3 rounded text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-cyber-neon/10">
+                        <i data-lucide="settings" class="w-4 h-4"></i>
+                        <span>Pengaturan Sistem</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- User Session Card -->
+            <div class="border-t border-cyber-border/30 pt-4 mt-6">
+                <div class="flex items-center justify-between bg-slate-900/60 p-3 rounded border border-slate-800">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-full bg-cyber-neon/20 border border-cyber-neon flex items-center justify-center font-mono text-xs font-bold text-cyber-neon" id="user-avatar">
+                            CA
+                        </div>
+                        <div class="overflow-hidden">
+                            <p class="text-xs font-bold text-white truncate" id="user-fullname">Cyber Admin</p>
+                            <p class="text-[10px] font-mono text-cyber-neon truncate" id="user-role">SUPER_ADMIN</p>
+                        </div>
+                    </div>
+                    <button onclick="handleLogout()" title="Logout Sesi" class="text-slate-400 hover:text-cyber-red transition-colors">
+                        <i data-lucide="log-out" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="flex-1 flex flex-col overflow-y-auto">
+            
+            <!-- TOP BAR -->
+            <header class="h-16 bg-[#090d16]/80 border-b border-cyber-border/30 flex items-center justify-between px-6 backdrop-blur-md sticky top-0 z-20">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-cyber-green animate-pulse-fast"></span>
+                        <span class="font-mono text-xs text-cyber-neon tracking-widest uppercase">CORE STATUS: ONLINE</span>
+                    </div>
+                    <span class="text-slate-700">|</span>
+                    <div class="hidden sm:flex items-center gap-2 text-xs font-mono text-slate-400" id="backend-status-indicator">
+                        <i data-lucide="database" class="w-3.5 h-3.5 text-cyber-yellow"></i>
+                        <span>API Mode: <span class="text-cyber-yellow" id="api-mode-label">DEMO MOCK</span></span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <button onclick="triggerDeduplication()" class="px-3 py-1.5 rounded bg-cyber-neon/10 border border-cyber-neon text-cyber-neon text-xs font-mono font-bold hover:bg-cyber-neon hover:text-black transition-all flex items-center gap-2 glow-neon-blue">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">RUN DEDUPLICATION</span>
+                    </button>
+                    <button onclick="openAddVoterModal()" class="px-3 py-1.5 rounded bg-cyber-red/20 border border-cyber-red text-cyber-red text-xs font-mono font-bold hover:bg-cyber-red hover:text-white transition-all flex items-center gap-2 glow-neon-red">
+                        <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">+ INPUT WARGA</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- TAB CONTENT CONTAINER -->
+            <div class="p-6 space-y-6 flex-1">
+
+                <section id="tab-dashboard" class="tab-pane space-y-6">
+                    <!-- Stat Cards Row -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="cyber-glass p-4 rounded-lg relative overflow-hidden group">
+                            <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-cyber-neon/10 rounded-full blur-xl group-hover:bg-cyber-neon/20 transition-all"></div>
+                            <p class="font-mono text-xs text-slate-400 tracking-wider uppercase">TOTAL WARGA TERDRAFT</p>
+                            <h3 class="font-orbitron text-2xl font-black text-white mt-2" id="stat-total-records">0</h3>
+                            <p class="text-[10px] font-mono text-cyber-neon mt-2 flex items-center gap-1">
+                                <i data-lucide="activity" class="w-3 h-3"></i> Sync aktif
+                            </p>
+                        </div>
+
+                        <div class="cyber-glass p-4 rounded-lg relative overflow-hidden group">
+                            <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-cyber-green/10 rounded-full blur-xl group-hover:bg-cyber-green/20 transition-all"></div>
+                            <p class="font-mono text-xs text-slate-400 tracking-wider uppercase">PEMILIH UNIK VALID</p>
+                            <h3 class="font-orbitron text-2xl font-black text-cyber-green mt-2" id="stat-unique-voters">0</h3>
+                            <p class="text-[10px] font-mono text-slate-400 mt-2">Bebas klaim ganda</p>
+                        </div>
+
+                        <div class="cyber-glass-red p-4 rounded-lg relative overflow-hidden group">
+                            <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-cyber-red/20 rounded-full blur-xl group-hover:bg-cyber-red/30 transition-all"></div>
+                            <p class="font-mono text-xs text-cyber-red tracking-wider uppercase font-bold">KLAIM GANDA (ANOMALI)</p>
+                            <h3 class="font-orbitron text-2xl font-black text-cyber-red mt-2 text-glow-red" id="stat-double-claims">0</h3>
+                            <p class="text-[10px] font-mono text-cyber-red mt-2 animate-pulse-fast">⚠️ Butuh Resolusi Konflik</p>
+                        </div>
+
+                        <div class="cyber-glass p-4 rounded-lg relative overflow-hidden group">
+                            <div class="absolute -right-4 -bottom-4 w-16 h-16 bg-cyber-yellow/10 rounded-full blur-xl group-hover:bg-cyber-yellow/20 transition-all"></div>
+                            <p class="font-mono text-xs text-slate-400 tracking-wider uppercase">SYNC HEALTH ENGINE</p>
+                            <h3 class="font-orbitron text-2xl font-black text-cyber-yellow mt-2" id="stat-sync-health">100%</h3>
+                            <p class="text-[10px] font-mono text-slate-400 mt-2">Status Server OK</p>
+                        </div>
+                    </div>
+
+                    <!-- Charts Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Chart 1: Distribution Doughnut -->
+                        <div class="cyber-glass p-5 rounded-lg border border-cyber-border/30">
+                            <h4 class="font-orbitron text-xs font-bold text-cyber-neon tracking-widest uppercase mb-4 flex items-center gap-2">
+                                <i data-lucide="pie-chart" class="w-4 h-4"></i> Distribusi Klaim Pemilih
+                            </h4>
+                            <div class="relative h-64 flex items-center justify-center">
+                                <canvas id="chartClaimsDoughnut"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Chart 2: Kubu Comparison Bar -->
+                        <div class="cyber-glass p-5 rounded-lg border border-cyber-border/30 lg:col-span-2">
+                            <h4 class="font-orbitron text-xs font-bold text-cyber-neon tracking-widest uppercase mb-4 flex items-center gap-2">
+                                <i data-lucide="bar-chart-3" class="w-4 h-4"></i> Volume Data: Kubu 1 vs Kubu 2
+                            </h4>
+                            <div class="relative h-64">
+                                <canvas id="chartKubuBar"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="tab-warga" class="tab-pane hidden space-y-6">
+                    <div class="cyber-glass p-5 rounded-lg border border-cyber-border/30 space-y-4">
+                        <!-- Filters Header -->
+                        <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+                            <div class="relative w-full md:w-96">
+                                <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-500"></i>
+                                <input type="text" id="search-voters" oninput="filterVotersTable()" placeholder="Cari NIK, Nama, RT/RW..." class="w-full bg-slate-900 border border-slate-700 rounded pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-cyber-neon font-mono">
+                            </div>
+                            <div class="flex items-center gap-3 w-full md:w-auto">
+                                <select id="filter-claimed-by" onchange="filterVotersTable()" class="bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-cyber-neon font-mono">
+                                    <option value="ALL">Semua Klaim</option>
+                                    <option value="KUBU 1">Kubu 1 Saja</option>
+                                    <option value="KUBU 2">Kubu 2 Saja</option>
+                                    <option value="BOTH (KUBU 1 & 2)">Klaim Ganda (Double)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm border-collapse">
+                                <thead>
+                                    <tr class="border-b border-slate-800 text-xs font-mono text-cyber-neon uppercase bg-slate-900/50">
+                                        <th class="p-3">NIK</th>
+                                        <th class="p-3">Nama Lengkap</th>
+                                        <th class="p-3">RT / RW</th>
+                                        <th class="p-3">Kubu Origin</th>
+                                        <th class="p-3">Status Klaim</th>
+                                        <th class="p-3 text-center">Confidence</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="voters-table-body" class="divide-y divide-slate-800/60 font-mono text-xs">
+                                    <!-- Dynamic Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="tab-double" class="tab-pane hidden space-y-6">
+                    <div class="cyber-glass-red p-5 rounded-lg border border-cyber-red/50 space-y-4">
+                        <div class="flex items-center justify-between border-b border-cyber-red/30 pb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded bg-cyber-red/20 flex items-center justify-center glow-neon-red">
+                                    <i data-lucide="alert-octagon" class="w-6 h-6 text-cyber-red"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-orbitron font-bold text-lg text-white text-glow-red">LOG BENTROK DATA NIK GANDA</h3>
+                                    <p class="font-mono text-xs text-cyber-red">Peringatan: Pemilih di bawah telah terdaftar di KEDUA KUBU secara bersamaan!</p>
+                                </div>
+                            </div>
+                            <button onclick="exportDuplicatesToCSV()" class="px-3 py-1.5 rounded bg-slate-900 border border-cyber-red text-cyber-red text-xs font-mono hover:bg-cyber-red hover:text-white transition-all flex items-center gap-2">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i> Export Konflik
+                            </button>
+                        </div>
+
+                        <!-- Duplicates Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm border-collapse">
+                                <thead>
+                                    <tr class="border-b border-cyber-red/30 text-xs font-mono text-cyber-red uppercase bg-cyber-red/10">
+                                        <th class="p-3">NIK (ANOMALI)</th>
+                                        <th class="p-3">Nama Pemilih</th>
+                                        <th class="p-3">RT / RW</th>
+                                        <th class="p-3">Tercatat Di</th>
+                                        <th class="p-3 text-center">Skor Kemiripan</th>
+                                        <th class="p-3 text-right">Aksi Resolusi</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="duplicates-table-body" class="divide-y divide-cyber-red/20 font-mono text-xs">
+                                    <!-- Dynamic Duplicate Rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="tab-radar" class="tab-pane hidden space-y-6">
+                    <div class="cyber-glass p-5 rounded-lg border border-cyber-border/30 space-y-4">
+                        <div>
+                            <h3 class="font-orbitron font-bold text-base text-cyber-neon tracking-wider uppercase">RADAR ANOMALI WILAYAH (RT/RW)</h3>
+                            <p class="font-mono text-xs text-slate-400">Peta konsentrasi persentase klaim ganda per wilayah administratif.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="radar-grid-container">
+                            <!-- Dynamic Regional Cards -->
+                        </div>
+                    </div>
+                </section>
+
+                <section id="tab-konektor" class="tab-pane hidden space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Manual Pull Card -->
+                        <div class="cyber-glass p-5 rounded-lg border border-cyber-border/30 space-y-4">
+                            <h4 class="font-orbitron text-sm font-bold text-cyber-neon tracking-widest uppercase flex items-center gap-2">
+                                <i data-lucide="download-cloud" class="w-4 h-4"></i> Trigger Manual Remote Sync
+                            </h4>
+                            <div class="space-y-3 font-mono text-xs">
+                                <div>
+                                    <label class="block text-slate-400 mb-1">Target Kubu</label>
+                                    <select id="sync-target-kubu" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white">
+                                        <option value="KUBU_1">KUBU 1 (Tim Pemenangan A)</option>
+                                        <option value="KUBU_2">KUBU 2 (Tim Pemenangan B)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 mb-1">Target Endpoint URL</label>
+                                    <input type="text" id="sync-target-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white">
+                                </div>
+                                <div>
+                                    <label class="block text-slate-400 mb-1">API Key / Token</label>
+                                    <input type="password" id="sync-api-key" placeholder="••••••••••••••••" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white">
+                                </div>
+                                <button onclick="handleTriggerRemoteSync()" class="w-full py-2.5 rounded bg-cyber-neon text-black font-bold font-orbitron hover:bg-cyber-cyan transition-all glow-neon-blue">
+                                    EKSEKUSI TARIK DATA
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Webhook Ingest Info -->
+                        <div class="cyber-glass p-5 rounded-lg border border-cyber-border/30 space-y-4">
+                            <h4 class="font-orbitron text-sm font-bold text-cyber-neon tracking-widest uppercase flex items-center gap-2">
+                                <i data-lucide="share-2" class="w-4 h-4"></i> Webhook Ingest Endpoint
+                            </h4>
+                            <p class="text-xs text-slate-300">Gunakan endpoint ini untuk menerima kiriman data POST secara realtime dari aplikasi external.</p>
+                            <div class="bg-slate-950 p-3 rounded border border-slate-800 font-mono text-[11px] text-cyber-neon break-all" id="webhook-endpoint-display">
+                                https://script.google.com/macros/s/AKfycb.../exec
+                            </div>
+                            <div class="text-[11px] text-slate-400 space-y-1 font-mono">
+                                <p class="text-white font-bold">Payload JSON Example:</p>
+                                <pre class="bg-slate-900 p-2 rounded text-slate-300 overflow-x-auto">{
+  "action": "webhookIngest",
+  "targetKubu": "KUBU_1",
+  "voterData": {
+    "nik": "3171012304890001",
+    "nama": "BUDI SANTOSO",
+    "rt": "001", "rw": "002"
+  }
+}</pre>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="tab-settings" class="tab-pane hidden space-y-6">
+                    <div class="cyber-glass p-5 rounded-lg border border-cyber-border/30 space-y-4">
+                        <h4 class="font-orbitron text-sm font-bold text-cyber-neon tracking-widest uppercase flex items-center gap-2">
+                            <i data-lucide="sliders" class="w-4 h-4"></i> Konfigurasi Server GAS Backend
+                        </h4>
+                        <div class="space-y-3 font-mono text-xs">
+                            <div>
+                                <label class="block text-slate-400 mb-1">Google Apps Script Web App Endpoint URL</label>
+                                <div class="flex gap-2">
+                                    <input type="text" id="setting-gas-url" placeholder="https://script.google.com/macros/s/.../exec" class="flex-1 bg-slate-900 border border-slate-700 rounded p-2 text-white">
+                                    <button onclick="saveGasUrlConfig()" class="px-4 py-2 bg-cyber-neon text-black font-bold rounded hover:bg-cyber-cyan">SIMPAN</button>
+                                </div>
+                                <p class="text-[10px] text-slate-500 mt-1">*Jika dikosongkan, aplikasi akan berjalan dalam mode Demo Mock Data.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cyber-glass p-5 rounded-lg border border-cyber-border/30 space-y-4">
+                        <h4 class="font-orbitron text-sm font-bold text-cyber-neon tracking-widest uppercase flex items-center gap-2">
+                            <i data-lucide="list-ordered" class="w-4 h-4"></i> Audit System Logs
+                        </h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm border-collapse font-mono text-xs">
+                                <thead>
+                                    <tr class="border-b border-slate-800 text-slate-400 uppercase bg-slate-900/50">
+                                        <th class="p-2">Log ID</th>
+                                        <th class="p-2">Source</th>
+                                        <th class="p-2">Status</th>
+                                        <th class="p-2">Message</th>
+                                        <th class="p-2">Timestamp</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="audit-logs-body" class="divide-y divide-slate-800">
+                                    <!-- Dynamic Logs -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: ADD VOTER -->
+    <div id="modal-add-voter" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="cyber-glass max-w-md w-full p-6 rounded-lg border border-cyber-neon/40 space-y-4 relative">
+            <h3 class="font-orbitron text-base font-bold text-cyber-neon uppercase tracking-wider">TAMBAH WARGA BARU</h3>
+            <form id="form-add-voter" onsubmit="handleSaveVoter(event)" class="space-y-3 font-mono text-xs">
+                <div>
+                    <label class="block text-slate-300 mb-1">Target Kubu</label>
+                    <select id="voter-input-kubu" class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white">
+                        <option value="KUBU_1">KUBU 1</option>
+                        <option value="KUBU_2">KUBU 2</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">NIK (16 Digit)</label>
+                    <input type="text" id="voter-input-nik" maxlength="16" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white font-mono">
+                </div>
+                <div>
+                    <label class="block text-slate-300 mb-1">Nama Lengkap</label>
+                    <input type="text" id="voter-input-nama" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white uppercase">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 mb-1">RT</label>
+                        <input type="text" id="voter-input-rt" placeholder="001" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 mb-1">RW</label>
+                        <input type="text" id="voter-input-rw" placeholder="002" required class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-white">
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button" onclick="closeAddVoterModal()" class="flex-1 py-2 rounded bg-slate-800 text-slate-300 hover:bg-slate-700">BATAL</button>
+                    <button type="submit" class="flex-1 py-2 rounded bg-cyber-neon text-black font-bold hover:bg-cyber-cyan glow-neon-blue">SIMPAN DATA</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2"></div>
+
+    <script>
+        /*
+         ==============================================================================
+         VOTE-SYNC CYBER CORE - FRONTEND SPA CONTROLLER
+         ==============================================================================
+        */
+
+        // Application State
+        const state = {
+            currentUser: {
+                username: 'admin',
+                role: 'SUPER_ADMIN',
+                fullName: 'Cyber Admin'
+            },
+            gasApiUrl: localStorage.getItem('VOTE_SYNC_GAS_URL') || '',
+            voters: [],
+            duplicates: [],
+            radar: [],
+            logs: [],
+            stats: {
+                totalRecords: 0,
+                uniqueVoters: 0,
+                doubleClaims: 0,
+                kubu1Count: 0,
+                kubu2Count: 0,
+                syncHealth: 'OPTIMAL (100%)'
+            }
+        };
+
+        // Charts Instances
+        let doughnutChart = null;
+        let barChart = null;
+
+        // INITIALIZATION
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            document.getElementById('setting-gas-url').value = state.gasApiUrl;
+            updateApiStatusLabel();
+            initCharts();
+            loadApplicationData();
+            applyRbacVisibility();
+        });
+
+        async function loadApplicationData() {
+            if (!state.gasApiUrl) {
+                // FALLBACK TO MOCK DATA DEMO
+                loadMockData();
+                renderAll();
+                return;
+            }
+
+            try {
+                const resStats = await fetch(`${state.gasApiUrl}?action=getDashboardStats`);
+                const dataStats = await resStats.json();
+                if (dataStats.status === 'SUCCESS') state.stats = dataStats.data;
+
+                const resVoters = await fetch(`${state.gasApiUrl}?action=getVoters`);
+                const dataVoters = await resVoters.json();
+                if (dataVoters.status === 'SUCCESS') state.voters = dataVoters.data;
+
+                const resDuplicates = await fetch(`${state.gasApiUrl}?action=getDuplicates`);
+                const dataDuplicates = await resDuplicates.json();
+                if (dataDuplicates.status === 'SUCCESS') state.duplicates = dataDuplicates.data;
+
+                const resRadar = await fetch(`${state.gasApiUrl}?action=getRadarWilayah`);
+                const dataRadar = await resRadar.json();
+                if (dataRadar.status === 'SUCCESS') state.radar = dataRadar.data;
+
+                renderAll();
+                showToast('Data berhasil disinkronkan dari Server GAS!', 'success');
+            } catch (err) {
+                console.warn("GAS Connection failed, using fallback mock data:", err);
+                loadMockData();
+                renderAll();
+                showToast('Koneksi GAS Gagal. Menggunakan Mode Demo Mock.', 'warning');
+            }
+        }
+
+        function loadMockData() {
+            state.voters = [
+                { NIK: '3171012003850001', NAMA: 'BUDI SANTOSO', RT: '001', RW: '002', KUBU_ORIGIN: 'KUBU 1', CLAIMED_BY: 'BOTH (KUBU 1 & 2)', IS_DUPLICATE: 'TRUE', CONFIDENCE_SCORE: 100 },
+                { NIK: '3171012003850001', NAMA: 'BUDI SANTOSO', RT: '001', RW: '002', KUBU_ORIGIN: 'KUBU 2', CLAIMED_BY: 'BOTH (KUBU 1 & 2)', IS_DUPLICATE: 'TRUE', CONFIDENCE_SCORE: 100 },
+                { NIK: '3171015508920003', NAMA: 'SITI AMINAH', RT: '001', RW: '002', KUBU_ORIGIN: 'KUBU 1', CLAIMED_BY: 'KUBU 1', IS_DUPLICATE: 'FALSE', CONFIDENCE_SCORE: 100 },
+                { NIK: '3171011102780005', NAMA: 'AHMAD HIDAYAT', RT: '003', RW: '002', KUBU_ORIGIN: 'KUBU 2', CLAIMED_BY: 'KUBU 2', IS_DUPLICATE: 'FALSE', CONFIDENCE_SCORE: 100 },
+                { NIK: '3171014409900007', NAMA: 'EKO PRASETYO', RT: '003', RW: '002', KUBU_ORIGIN: 'KUBU 1', CLAIMED_BY: 'BOTH (KUBU 1 & 2)', IS_DUPLICATE: 'TRUE', CONFIDENCE_SCORE: 100 },
+                { NIK: '3171016612880009', NAMA: 'DEWI LESTARI', RT: '002', RW: '001', KUBU_ORIGIN: 'KUBU 1', CLAIMED_BY: 'KUBU 1', IS_DUPLICATE: 'FALSE', CONFIDENCE_SCORE: 100 }
+            ];
+
+            state.duplicates = state.voters.filter(v => v.IS_DUPLICATE === 'TRUE');
+
+            state.stats = {
+                totalRecords: state.voters.length,
+                uniqueVoters: 4,
+                doubleClaims: 2,
+                kubu1Count: 4,
+                kubu2Count: 3,
+                syncHealth: 'MOCK DEMO'
+            };
+
+            state.radar = [
+                { rt: '001', rw: '002', total: 3, duplicates: 1, anomalyPercentage: 33 },
+                { rt: '003', rw: '002', total: 2, duplicates: 1, anomalyPercentage: 50 },
+                { rt: '002', rw: '001', total: 1, duplicates: 0, anomalyPercentage: 0 }
+            ];
+
+            state.logs = [
+                { LOG_ID: 'LOG-101', SOURCE: 'DEDUPLICATION_ENGINE', STATUS: 'SUCCESS', MESSAGE: 'Deduplication run completed. 2 duplicates identified.', TIMESTAMP: new Date().toISOString() }
+            ];
+        }
+
+        function renderAll() {
+            // Stats
+            document.getElementById('stat-total-records').innerText = state.stats.totalRecords;
+            document.getElementById('stat-unique-voters').innerText = state.stats.uniqueVoters;
+            document.getElementById('stat-double-claims').innerText = state.stats.doubleClaims;
+            document.getElementById('badge-double-count').innerText = state.stats.doubleClaims;
+            document.getElementById('stat-sync-health').innerText = state.stats.syncHealth;
+
+            // Render Charts
+            updateCharts();
+
+            // Tables & Grids
+            renderVotersTable();
+            renderDuplicatesTable();
+            renderRadarGrid();
+            renderAuditLogs();
+        }
+
+        function initCharts() {
+            // Doughnut Chart
+            const ctxDoughnut = document.getElementById('chartClaimsDoughnut').getContext('2d');
+            doughnutChart = new Chart(ctxDoughnut, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Kubu 1 Unik', 'Kubu 2 Unik', 'Double Claim'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#00f0ff', '#08f7fe', '#ff003c'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#94a3b8', font: { family: 'Share Tech Mono' } } } }
+                }
+            });
+
+            // Bar Chart
+            const ctxBar = document.getElementById('chartKubuBar').getContext('2d');
+            barChart = new Chart(ctxBar, {
+                type: 'bar',
+                data: {
+                    labels: ['KUBU 1', 'KUBU 2'],
+                    datasets: [{
+                        label: 'Jumlah Klaim Pemilih',
+                        data: [0, 0],
+                        backgroundColor: ['#00f0ff', '#ffb703'],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function updateCharts() {
+            if (!doughnutChart || !barChart) return;
+            doughnutChart.data.datasets[0].data = [
+                state.stats.kubu1Count - state.stats.doubleClaims,
+                state.stats.kubu2Count - state.stats.doubleClaims,
+                state.stats.doubleClaims
+            ];
+            doughnutChart.update();
+
+            barChart.data.datasets[0].data = [state.stats.kubu1Count, state.stats.kubu2Count];
+            barChart.update();
+        }
+
+        function renderVotersTable() {
+            const tbody = document.getElementById('voters-table-body');
+            tbody.innerHTML = '';
+
+            state.voters.forEach(v => {
+                const isDouble = v.IS_DUPLICATE === 'TRUE' || v.IS_DUPLICATE === true;
+                const tr = document.createElement('tr');
+                tr.className = `hover:bg-slate-800/40 transition-colors ${isDouble ? 'bg-cyber-red/10 text-cyber-red font-bold' : 'text-slate-300'}`;
+                
+                tr.innerHTML = `
+                    <td class="p-3">${v.NIK}</td>
+                    <td class="p-3 uppercase">${v.NAMA}</td>
+                    <td class="p-3">RT ${v.RT} / RW ${v.RW}</td>
+                    <td class="p-3"><span class="px-2 py-0.5 rounded bg-slate-800 text-cyber-neon border border-cyber-neon/30">${v.KUBU_ORIGIN || '-'}</span></td>
+                    <td class="p-3">
+                        ${isDouble 
+                            ? '<span class="px-2 py-0.5 rounded bg-cyber-red text-white text-[10px] font-bold glow-neon-red">DOUBLE CLAIM</span>' 
+                            : '<span class="px-2 py-0.5 rounded bg-cyber-green/20 text-cyber-green text-[10px]">VALID UNIK</span>'}
+                    </td>
+                    <td class="p-3 text-center">${v.CONFIDENCE_SCORE || 100}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderDuplicatesTable() {
+            const tbody = document.getElementById('duplicates-table-body');
+            tbody.innerHTML = '';
+
+            state.duplicates.forEach(v => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-cyber-red/20 transition-colors text-slate-200 border-b border-cyber-red/20';
+                tr.innerHTML = `
+                    <td class="p-3 font-bold text-cyber-red text-glow-red">${v.NIK}</td>
+                    <td class="p-3 uppercase font-bold">${v.NAMA}</td>
+                    <td class="p-3">RT ${v.RT} / RW ${v.RW}</td>
+                    <td class="p-3"><span class="text-cyber-yellow">KUBU 1 & KUBU 2</span></td>
+                    <td class="p-3 text-center"><span class="px-2 py-0.5 bg-cyber-red text-white rounded font-bold">${v.CONFIDENCE_SCORE || 100}%</span></td>
+                    <td class="p-3 text-right">
+                        <button onclick="resolveDuplicate('${v.NIK}')" class="px-2.5 py-1 rounded bg-cyber-neon text-black font-bold text-[10px] hover:bg-cyber-cyan">RESOLUSI</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderRadarGrid() {
+            const container = document.getElementById('radar-grid-container');
+            container.innerHTML = '';
+
+            state.radar.forEach(r => {
+                const card = document.createElement('div');
+                card.className = 'cyber-glass p-4 rounded border border-cyber-border/30 space-y-2';
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <h5 class="font-orbitron font-bold text-sm text-white">RT ${r.rt} / RW ${r.rw}</h5>
+                        <span class="px-2 py-0.5 rounded ${r.anomalyPercentage > 20 ? 'bg-cyber-red text-white' : 'bg-cyber-green/20 text-cyber-green'} text-[10px] font-mono">
+                            ${r.anomalyPercentage}% Anomali
+                        </span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded overflow-hidden">
+                        <div class="bg-cyber-red h-full" style="width: ${r.anomalyPercentage}%"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] font-mono text-slate-400 pt-1">
+                        <span>Total: ${r.total} Warga</span>
+                        <span class="text-cyber-red font-bold">${r.duplicates} Bentrok</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderAuditLogs() {
+            const tbody = document.getElementById('audit-logs-body');
+            tbody.innerHTML = '';
+
+            state.logs.forEach(l => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2 text-cyber-neon">${l.LOG_ID}</td>
+                    <td class="p-2">${l.SOURCE}</td>
+                    <td class="p-2"><span class="text-cyber-green">${l.STATUS}</span></td>
+                    <td class="p-2">${l.MESSAGE}</td>
+                    <td class="p-2 text-slate-500">${new Date(l.TIMESTAMP).toLocaleTimeString()}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+
+            const targetTab = document.getElementById(`tab-${tabId}`);
+            const targetNav = document.getElementById(`nav-${tabId}`);
+
+            if (targetTab) targetTab.classList.remove('hidden');
+            if (targetNav) targetNav.classList.add('active');
+        }
+
+        function applyRbacVisibility() {
+            const isSuperAdmin = state.currentUser.role === 'SUPER_ADMIN';
+            document.querySelectorAll('.super-admin-only').forEach(el => {
+                if (isSuperAdmin) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            });
+
+            document.getElementById('user-fullname').innerText = state.currentUser.fullName;
+            document.getElementById('user-role').innerText = state.currentUser.role;
+        }
+
+        async function triggerDeduplication() {
+            showToast('Menjalankan Engine Deduplikasi...', 'info');
+            if (state.gasApiUrl) {
+                try {
+                    const res = await fetch(state.gasApiUrl, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'runDeduplication', token: 'MOCK_TOKEN' })
+                    });
+                    const resData = await res.json();
+                    showToast(`Deduplikasi Selesai! Ditemukan ${resData.duplicateCount} Bentrok.`, 'success');
+                    loadApplicationData();
+                } catch (e) {
+                    showToast('Gagal eksekusi Deduplikasi remote.', 'error');
+                }
+            } else {
+                setTimeout(() => {
+                    showToast('Deduplikasi Demo Selesai. 2 Duplikat Terdeteksi.', 'success');
+                }, 1000);
+            }
+        }
+
+        function saveGasUrlConfig() {
+            const url = document.getElementById('setting-gas-url').value.trim();
+            state.gasApiUrl = url;
+            localStorage.setItem('VOTE_SYNC_GAS_URL', url);
+            updateApiStatusLabel();
+            showToast('URL Google Apps Script Disimpan!', 'success');
+            loadApplicationData();
+        }
+
+        function updateApiStatusLabel() {
+            const label = document.getElementById('api-mode-label');
+            if (state.gasApiUrl) {
+                label.innerText = 'GAS REMOTE CONNECTED';
+                label.className = 'text-cyber-green font-bold';
+            } else {
+                label.innerText = 'DEMO MOCK';
+                label.className = 'text-cyber-yellow font-bold';
+            }
+        }
+
+        function openAddVoterModal() {
+            document.getElementById('modal-add-voter').classList.remove('hidden');
+        }
+
+        function closeAddVoterModal() {
+            document.getElementById('modal-add-voter').classList.add('hidden');
+        }
+
+        function handleSaveVoter(e) {
+            e.preventDefault();
+            const newVoter = {
+                NIK: document.getElementById('voter-input-nik').value,
+                NAMA: document.getElementById('voter-input-nama').value.toUpperCase(),
+                RT: document.getElementById('voter-input-rt').value,
+                RW: document.getElementById('voter-input-rw').value,
+                KUBU_ORIGIN: document.getElementById('voter-input-kubu').value,
+                CLAIMED_BY: document.getElementById('voter-input-kubu').value,
+                IS_DUPLICATE: 'FALSE'
+            };
+
+            state.voters.unshift(newVoter);
+            state.stats.totalRecords++;
+            renderAll();
+            closeAddVoterModal();
+            showToast('Warga Baru Berhasil Ditambahkan!', 'success');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-slate-900 border-cyber-neon text-cyber-neon';
+            if (type === 'success') bgClass = 'bg-slate-900 border-cyber-green text-cyber-green';
+            if (type === 'error') bgClass = 'bg-slate-900 border-cyber-red text-cyber-red';
+
+            toast.className = `p-3 rounded border text-xs font-mono shadow-lg transition-all duration-300 transform translate-y-2 ${bgClass}`;
+            toast.innerText = message;
+
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 4000);
+        }
+
+        function handleLogout() {
+            showToast('Sesi dikembalikan ke mode Guest.', 'info');
+        }
+    </script>
+</body>
+</html>
