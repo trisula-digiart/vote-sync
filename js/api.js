@@ -57,6 +57,43 @@ const API = {
     },
 
     /**
+     * Heartbeat Health Check untuk memantau konektivitas & latensi GAS Backend
+     */
+    async pingHealthCheck() {
+        const gasUrl = state.gasApiUrl || localStorage.getItem(CONFIG.STORAGE_KEY_GAS_URL);
+        if (!gasUrl) {
+            state.connectionStatus = 'DEMO';
+            state.latencyMs = 0;
+            return false;
+        }
+
+        const startTime = performance.now();
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 detik timeout
+
+            const response = await fetch(`${gasUrl}?action=ping`, {
+                method: 'GET',
+                redirect: 'follow',
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            const endTime = performance.now();
+            if (response.ok) {
+                state.latencyMs = Math.round(endTime - startTime);
+                return true;
+            } else {
+                state.latencyMs = 0;
+                return false;
+            }
+        } catch (err) {
+            state.latencyMs = 0;
+            return false;
+        }
+    },
+
+    /**
      * Menangani respons simulasi saat server offline / demo
      */
     handleMockFallback(action, payload) {
