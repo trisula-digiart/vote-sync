@@ -544,3 +544,6 @@ window.submitResolution = submitResolution;
 window.exportDuplicatesToCSV = exportDuplicatesToCSV;
 window.printDuplicateReport = printDuplicateReport;
 window.filterVotersTable = filterVotersTable;
+window.handleLogout = typeof handleLogout !== 'undefined' ? handleLogout : function() {
+    if (typeof window.handleLogout === 'function') window.handleLogout();
+};
