@@ -6,6 +6,7 @@
 
 let chartClaimsInstance = null;
 let chartKubuInstance = null;
+let heartbeatTimer = null;
 
 // Inisialisasi saat DOM siap
 document.addEventListener('DOMContentLoaded', () => {
@@ -27,6 +28,80 @@ async function initApp() {
 
     updateApiStatusIndicator();
     await loadDashboardData();
+    startHeartbeatLoop();
+}
+
+/**
+ * Loop Pemantau Koneksi & Auto-Resync Realtime (Heartbeat)
+ */
+function startHeartbeatLoop() {
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+
+    // Cek langsung saat aplikasi dimuat
+    runHealthCheckProcess();
+
+    // Jalankan pemeriksaan periodik setiap 10 detik
+    heartbeatTimer = setInterval(runHealthCheckProcess, 10000);
+}
+
+/**
+ * Proses Eksekusi Cek Koneksi & Auto-Sync
+ */
+async function runHealthCheckProcess() {
+    const isAlive = await API.pingHealthCheck();
+
+    if (isAlive) {
+        if (state.connectionStatus !== 'CONNECTED') {
+            state.connectionStatus = 'CONNECTED';
+            showToast(`🟢 Terhubung ke Backend GAS (${state.latencyMs}ms)`, 'success');
+
+            // Auto-Resync Data jika sebelumnya sempat putus / terhubung kembali
+            if (state.wasOffline) {
+                showToast('⚡ Mengunduh ulang data terbaru secara otomatis...', 'info');
+                await loadDashboardData();
+                state.wasOffline = false;
+            }
+        }
+    } else {
+        if (state.connectionStatus === 'CONNECTED') {
+            state.wasOffline = true;
+            showToast('⚠️ Koneksi Backend GAS Terputus! Beralih ke Mode Standby.', 'error');
+        }
+        state.connectionStatus = state.gasApiUrl ? 'DISCONNECTED' : 'DEMO';
+    }
+
+    updateHealthUI();
+}
+
+/**
+ * Update Indikator UI Koneksi Topbar
+ */
+function updateHealthUI() {
+    const pingDot = document.getElementById('core-status-ping');
+    const textLabel = document.getElementById('core-status-text');
+    const latencyLabel = document.getElementById('core-status-latency');
+
+    if (!pingDot || !textLabel || !latencyLabel) return;
+
+    if (state.connectionStatus === 'CONNECTED') {
+        pingDot.className = 'w-2.5 h-2.5 rounded-full bg-cyber-green animate-pulse-fast';
+        textLabel.className = 'font-mono text-xs text-cyber-green tracking-widest uppercase';
+        textLabel.textContent = 'CORE STATUS: ONLINE';
+        latencyLabel.textContent = `${state.latencyMs} ms`;
+        latencyLabel.className = 'font-mono text-[10px] text-cyber-green bg-cyber-green/10 px-1.5 py-0.5 rounded border border-cyber-green/30';
+    } else if (state.connectionStatus === 'DISCONNECTED') {
+        pingDot.className = 'w-2.5 h-2.5 rounded-full bg-cyber-red animate-pulse-fast';
+        textLabel.className = 'font-mono text-xs text-cyber-red tracking-widest uppercase';
+        textLabel.textContent = 'CORE STATUS: OFFLINE';
+        latencyLabel.textContent = 'TIMEOUT';
+        latencyLabel.className = 'font-mono text-[10px] text-cyber-red bg-cyber-red/10 px-1.5 py-0.5 rounded border border-cyber-red/30';
+    } else {
+        pingDot.className = 'w-2.5 h-2.5 rounded-full bg-cyber-yellow';
+        textLabel.className = 'font-mono text-xs text-cyber-yellow tracking-widest uppercase';
+        textLabel.textContent = 'CORE STATUS: DEMO MOCK';
+        latencyLabel.textContent = 'LOCAL';
+        latencyLabel.className = 'font-mono text-[10px] text-cyber-yellow bg-cyber-yellow/10 px-1.5 py-0.5 rounded border border-cyber-yellow/30';
+    }
 }
 
 /**
